@@ -1,3 +1,4 @@
+import os.path
 import tkinter as tk
 import logging
 import types
@@ -32,7 +33,11 @@ def load_config(filepath="./wakeword_service_gui_config.xml"):
             raise NotImplementedError(f"gui.load_config(): Not implemented element <{root_child_elm.tag}>")
     return config
 
-config = load_config("./wakeword_service_gui_config.xml")
+config_filepath = "./wakeword_service_gui_config.xml"
+if not os.path.exists(config_filepath):
+    raise FileNotFoundError(f"gui.py: Could not find filepath '{config_filepath}'. Did you forget to copy './wakeword_service_gui_config.xml.example'?")
+
+config = load_config(config_filepath)
 
 global_params = SimpleNamespace()
 global_params.is_running = False
