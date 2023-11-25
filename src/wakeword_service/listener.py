@@ -4,19 +4,31 @@ import numpy as np
 from openwakeword.model import Model
 import time
 import threading
+import subprocess
+import logging
 
 class WakewordListener(threading.Thread):
-    def __init__(self):
+    def __init__(self,
+                 command_on_wakeword,
+                 chunk_size=1280,
+                 model_path="hey jarvis",
+                 inference_framework='onnx',
+                 channels=1,
+                 rate=16000,
+                 sleep_after_detection_in_seconds=4.0
+                 ):
         super(WakewordListener, self).__init__()
+        self._command_on_wakeword = command_on_wakeword
         self._must_listen = False
-        self._chunk_size = 1280
-        self._model_path = "hey jarvis"
-        self._inference_framework = 'onnx'
+        self._chunk_size = chunk_size
+        self._model_path = model_path
+        self._inference_framework = inference_framework
 
         # Get microphone stream
         self._format = pyaudio.paInt16
-        self._channels = 1
-        self._rate = 16000
+        self._channels = channels
+        self._rate = rate
+        self._sleep_after_detection_in_seconds = sleep_after_detection_in_seconds
 
         audio = pyaudio.PyAudio()
         self._mic_stream = audio.open(format=self._format, channels=self._channels,
@@ -31,29 +43,31 @@ class WakewordListener(threading.Thread):
             self.oww_model = Model(inference_framework=self._inference_framework)
 
         self._n_models = len(self._oww_model.models.keys())
-        print(f"WakewordListener.__init__(): self._n_models = {self._n_models}")
+        #print(f"WakewordListener.__init__(): self._n_models = {self._n_models}")
 
     def start_stop(self):
         self._must_listen = not self._must_listen
+        logging.info(f"WakewordListener.start_stop(): self._must_listen = {self._must_listen}")
 
     def run(self):
         while True:
             if self._must_listen:
+                wakeword_is_detected = False
                 # Get audio
                 audio = np.frombuffer(self._mic_stream.read(self._chunk_size), dtype=np.int16)
 
                 # Feed to openWakeWord model
                 prediction = self._oww_model.predict(audio)
+                #print(f"WakewordListener.run(): prediction = {prediction}")
+                for wakeword, score in prediction.items():
+                    if score > 0.5:
+                        logging.info(f"WakewordListener.run(): Wakeword detected! score = {score}")
+                        wakeword_is_detected = True
+                        self._oww_model.reset()
 
-                for mdl in self._oww_model.prediction_buffer.keys():
-                    # Add scores in formatted table
-                    scores = list(self._oww_model.prediction_buffer[mdl])
-                    if scores[-1] >= 0.5:
-                        print(f"WakewordListener.run(): scores[-1] = {scores[-1]}")
-                    #print(f"WakewordListener.run(): scores = {scores}")
-                    #curr_score = format(scores[-1], '.20f').replace("-", "")
-
-                    #output_string_header += f"""{mdl}{" " * (n_spaces - len(mdl))}   | {curr_score[0:5]} | {"--" + " " * 20 if scores[-1] <= 0.5 else "Wakeword Detected!"}
+                if wakeword_is_detected:
+                    returned_value = subprocess.call(self._command_on_wakeword, shell=True)
+                    logging.info(f"WakewordListener.run(): returned_value = \n{returned_value}")
+                    time.sleep(self._sleep_after_detection_in_seconds)
             else:
-                #print("WakewordListener.run(): Not listening...")
                 time.sleep(0.01)
