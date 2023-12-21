@@ -1,5 +1,5 @@
 <wakeword_service_gui_config>
-	<command_on_wakeword>command.sh</command_on_wakeword>
+	<command_on_wakeword>command.bat</command_on_wakeword>
 	<chunk_size>1280</chunk_size>
 	<model_wakeword>hey jarvis</model_wakeword>
 	<inference_framework>onnx</inference_framework>
