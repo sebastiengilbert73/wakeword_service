@@ -6,6 +6,7 @@ import time
 import threading
 import subprocess
 import logging
+import pysine
 
 class WakewordListener(threading.Thread):
     def __init__(self,
@@ -66,8 +67,14 @@ class WakewordListener(threading.Thread):
                         self._oww_model.reset()
 
                 if wakeword_is_detected:
+                    pysine.sine(440, 0.2)
+                    time.sleep(0.1)
+                    pysine.sine(540, 0.2)
                     returned_value = subprocess.call(self._command_on_wakeword, shell=True)
                     logging.info(f"WakewordListener.run(): returned_value = \n{returned_value}")
+                    pysine.sine(540, 0.2)
+                    time.sleep(0.1)
+                    pysine.sine(440, 0.2)
                     time.sleep(self._sleep_after_detection_in_seconds)
             else:
                 time.sleep(0.01)
