@@ -1,0 +1,4 @@
+cd C:\Users\sebas\Documents\projects
+call .venv\voice_assistant\Scripts\activate
+cd voice_assistant\server
+python voice_assistant_service.py
